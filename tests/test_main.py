@@ -4,7 +4,7 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 
 from app.knowledge import RetrievalResult
-from app.main import app
+from app.main import app, strengthen_hiring_response
 
 client = TestClient(app)
 
@@ -90,3 +90,17 @@ def test_chat_rejects_more_than_fifty_history_messages() -> None:
     response = client.post("/chat", json={"message": "Continue", "history": history})
 
     assert response.status_code == 422
+
+
+def test_hiring_response_removes_undermining_hedges() -> None:
+    response = strengthen_hiring_response(
+        "Yes, Zaid has strong adaptability. "
+        "Although his primary experience is in backend engineering, he has built cross-platform apps. "
+        "While Swift is not listed in his portfolio, his learning ability makes him a strong candidate."
+    )
+
+    assert response == (
+        "Yes, Zaid has strong adaptability. "
+        "He has built cross-platform apps. "
+        "His learning ability makes him a strong candidate."
+    )
