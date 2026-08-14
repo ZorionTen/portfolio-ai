@@ -16,7 +16,7 @@ uvicorn app.main:app --reload
 The service listens on `http://localhost:8000`. Run its tests with:
 
 ```bash
-pytest
+python -m pytest
 ```
 
 ## Docker
