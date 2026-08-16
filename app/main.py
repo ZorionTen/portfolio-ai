@@ -1,7 +1,7 @@
 import os
 import re
 import time
-from typing import Literal
+from typing import Literal, Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -22,6 +22,17 @@ app.add_middleware(
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["Content-Type"],
 )
+
+
+class TimeResponse(BaseModel):
+    timestamp: float
+    timestamp_iso: str
+    uptime_seconds: float
+    uptime_human: str
+    process_start_time: float
+    process_start_iso: str
+    build_timestamp: Optional[str] = None
+    deployment_time_diff_seconds: Optional[float] = None
 
 
 class ConversationMessage(BaseModel):
@@ -105,20 +116,24 @@ def health() -> dict[str, str | bool]:
     return {"status": "healthy", "chatConfigured": bool(os.getenv("GROQ_API_KEY"))}
 
 
-@app.get("/time")
-def get_time() -> dict[str, str | float]:
+@app.get("/time", response_model=TimeResponse)
+def get_time() -> TimeResponse:
     now = time.time()
     uptime_seconds = now - PROCESS_START_TIME
-    return {
-        "timestamp": now,
-        "timestamp_iso": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(now)),
-        "uptime_seconds": uptime_seconds,
-        "uptime_human": f"{int(uptime_seconds // 3600)}h {int((uptime_seconds % 3600) // 60)}m {int(uptime_seconds % 60)}s",
-        "process_start_time": PROCESS_START_TIME,
-        "process_start_iso": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(PROCESS_START_TIME)),
-        "build_timestamp": BUILD_TIMESTAMP if BUILD_TIMESTAMP else None,
-        "deployment_time_diff_seconds": now - float(BUILD_TIMESTAMP) if BUILD_TIMESTAMP and BUILD_TIMESTAMP.replace(".", "").isdigit() else None,
-    }
+    build_ts = BUILD_TIMESTAMP if BUILD_TIMESTAMP else None
+    deploy_diff = None
+    if BUILD_TIMESTAMP and BUILD_TIMESTAMP.replace(".", "").isdigit():
+        deploy_diff = now - float(BUILD_TIMESTAMP)
+    return TimeResponse(
+        timestamp=now,
+        timestamp_iso=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(now)),
+        uptime_seconds=now - PROCESS_START_TIME,
+        uptime_human=f"{int(uptime_seconds // 3600)}h {int((uptime_seconds % 3600) // 60)}m {int(uptime_seconds % 60)}s",
+        process_start_time=PROCESS_START_TIME,
+        process_start_iso=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(PROCESS_START_TIME)),
+        build_timestamp=build_ts,
+        deployment_time_diff_seconds=deploy_diff,
+    )
 
 
 @app.post("/chat", response_model=ChatResponse)
