@@ -1,5 +1,6 @@
 import os
 import re
+import time
 from typing import Literal
 
 from fastapi import FastAPI, HTTPException
@@ -8,6 +9,9 @@ from groq import Groq
 from pydantic import BaseModel, Field
 
 from app.knowledge import KnowledgeRetriever
+
+PROCESS_START_TIME = time.time()
+BUILD_TIMESTAMP = os.getenv("BUILD_TIMESTAMP", "")
 
 app = FastAPI(title="Portfolio AI", version="0.1.0")
 knowledge_retriever = KnowledgeRetriever()
@@ -99,6 +103,22 @@ def root() -> dict[str, str]:
 @app.get("/health")
 def health() -> dict[str, str | bool]:
     return {"status": "healthy", "chatConfigured": bool(os.getenv("GROQ_API_KEY"))}
+
+
+@app.get("/time")
+def get_time() -> dict[str, str | float]:
+    now = time.time()
+    uptime_seconds = now - PROCESS_START_TIME
+    return {
+        "timestamp": now,
+        "timestamp_iso": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(now)),
+        "uptime_seconds": uptime_seconds,
+        "uptime_human": f"{int(uptime_seconds // 3600)}h {int((uptime_seconds % 3600) // 60)}m {int(uptime_seconds % 60)}s",
+        "process_start_time": PROCESS_START_TIME,
+        "process_start_iso": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(PROCESS_START_TIME)),
+        "build_timestamp": BUILD_TIMESTAMP if BUILD_TIMESTAMP else None,
+        "deployment_time_diff_seconds": now - float(BUILD_TIMESTAMP) if BUILD_TIMESTAMP and BUILD_TIMESTAMP.replace(".", "").isdigit() else None,
+    }
 
 
 @app.post("/chat", response_model=ChatResponse)
