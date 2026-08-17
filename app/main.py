@@ -165,7 +165,9 @@ def chat(request: ChatRequest) -> ChatResponse:
             max_completion_tokens=500,
         )
     except Exception as error:
-        raise HTTPException(status_code=502, detail="AI provider request failed") from error
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=502, detail=f"AI provider request failed: {error}") from error
 
     response = completion.choices[0].message.content
     if not response:
