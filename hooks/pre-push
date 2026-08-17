@@ -1,0 +1,30 @@
+#!/bin/bash
+# Pre-push hook: run tests before pushing
+
+echo "🧪 Running tests before push..."
+
+if [ ! -f "requirements.txt" ]; then
+    echo "❌ Not in portfolio-ai directory"
+    exit 1
+fi
+
+# Try to run tests with available Python
+if command -v python3 &> /dev/null && python3 -c "import pytest" 2>/dev/null; then
+    python3 -m pytest tests/ -v
+    RESULT=$?
+elif command -v .venv/bin/python &> /dev/null && .venv/bin/python -c "import pytest" 2>/dev/null; then
+    .venv/bin/python -m pytest tests/ -v
+    RESULT=$?
+else
+    echo "⚠️  pytest not available locally, skipping test run"
+    echo "   Tests will run in CI. To run locally: pip install pytest && pytest tests/"
+    exit 0
+fi
+
+if [ $RESULT -ne 0 ]; then
+    echo "❌ Tests failed! Push aborted."
+    exit 1
+fi
+
+echo "✅ All tests passed!"
+exit 0
