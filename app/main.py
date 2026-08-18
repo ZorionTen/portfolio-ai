@@ -154,7 +154,7 @@ def chat(request: ChatRequest) -> ChatResponse:
 
     try:
         completion = Groq(api_key=api_key, timeout=15).chat.completions.create(
-            model=os.getenv("GROQ_MODEL", "llama-3.1-70b-versatile"),
+            model=os.getenv("GROQ_MODEL", "groq/compound"),
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "system", "content": f"Retrieved portfolio context:\n\n{context}"},
